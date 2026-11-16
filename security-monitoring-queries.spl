@@ -1,1 +1,140 @@
+# Splunk Security Monitoring Queries
+# Project: Security Log Monitoring and Threat Detection
+# Log Source: Windows Security Event Logs
+# Index: main
 
+# --------------------------------------------------
+# 1. Monitor Failed Login Attempts (Event ID 4625)
+# --------------------------------------------------
+
+index=main EventCode=4625
+| table _time Account_Name EventCode IpAddress
+| sort -_time
+
+
+# --------------------------------------------------
+# 2. Monitor Successful Login Attempts (Event ID 4624)
+# --------------------------------------------------
+
+index=main EventCode=4624
+| table _time Account_Name EventCode IpAddress
+| sort -_time
+
+
+# --------------------------------------------------
+# 3. Identify Accounts with Repeated Failed Logins
+# --------------------------------------------------
+
+index=main EventCode=4625
+| stats count by Account_Name
+| sort -count
+
+
+# --------------------------------------------------
+# 4. Detect Potential Brute-Force Activity
+# --------------------------------------------------
+
+index=main EventCode=4625
+| bin _time span=10m
+| stats count by _time Account_Name IpAddress
+| where count >= 5
+| sort -count
+
+
+# --------------------------------------------------
+# 5. Monitor New User Account Creation (Event ID 4720)
+# --------------------------------------------------
+
+index=main EventCode=4720
+| table _time Account_Name EventCode
+| sort -_time
+
+
+# --------------------------------------------------
+# 6. Monitor Privileged Account Activity (Event ID 4672)
+# --------------------------------------------------
+
+index=main EventCode=4672
+| table _time Account_Name EventCode
+| sort -_time
+
+
+# --------------------------------------------------
+# 7. Detect Security Audit Log Clearing (Event ID 1102)
+# --------------------------------------------------
+
+index=main EventCode=1102
+| table _time Account_Name EventCode
+| sort -_time
+
+
+# --------------------------------------------------
+# 8. Monitor User Logoff Events (Event ID 4634)
+# --------------------------------------------------
+
+index=main EventCode=4634
+| table _time Account_Name EventCode
+| sort -_time
+
+
+# --------------------------------------------------
+# 9. Analyze Failed Login Attempts by Source IP
+# --------------------------------------------------
+
+index=main EventCode=4625
+| stats count by IpAddress
+| sort -count
+
+
+# --------------------------------------------------
+# 10. Compare Successful and Failed Login Attempts
+# --------------------------------------------------
+
+index=main (EventCode=4624 OR EventCode=4625)
+| eval Login_Status=if(EventCode=4624,"Successful","Failed")
+| stats count by Login_Status
+
+
+# --------------------------------------------------
+# 11. View Failed Login Trends Over Time
+# --------------------------------------------------
+
+index=main EventCode=4625
+| timechart span=1h count
+
+
+# --------------------------------------------------
+# 12. Identify Explicit Credential Usage (Event ID 4648)
+# --------------------------------------------------
+
+index=main EventCode=4648
+| table _time Account_Name EventCode
+| sort -_time
+
+
+# --------------------------------------------------
+# 13. Monitor All Important Security Events
+# --------------------------------------------------
+
+index=main (EventCode=4624 OR EventCode=4625 OR EventCode=4672 OR EventCode=4720 OR EventCode=1102)
+| stats count by EventCode
+| sort -count
+
+
+# --------------------------------------------------
+# 14. Identify Accounts with Five or More Failed Logins
+# --------------------------------------------------
+
+index=main EventCode=4625
+| stats count by Account_Name
+| where count >= 5
+| sort -count
+
+
+# --------------------------------------------------
+# 15. Security Event Monitoring Dashboard Data
+# --------------------------------------------------
+
+index=main (EventCode=4624 OR EventCode=4625)
+| eval Login_Status=case(EventCode=4624,"Successful",EventCode=4625,"Failed")
+| timechart span=1h count by Login_Status
